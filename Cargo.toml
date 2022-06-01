@@ -1,9 +1,13 @@
 [package]
-name = "bloatr"
+name = "mapfile"
+description = "gnu linker mapfiler parser"
+repository = "https://github.com/ryankurte/mapfile"
+authors = [ "ryan <ryan@kurte.nz>" ]
+categories = [ "embedded" ]
+keywords = [ "gnu", "linker", "map", "parser", "embedded" ]
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MPL-2.0"
 
 [dependencies]
 anyhow = "1.0.57"

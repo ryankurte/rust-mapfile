@@ -1,4 +1,4 @@
-use bloatr::MapFile;
+use mapfile::MapFile;
 use clap::Parser;
 
 use log::{debug, info, warn, LevelFilter};
@@ -36,7 +36,9 @@ fn main() -> anyhow::Result<()> {
         Err(_e) => return Err(anyhow::anyhow!("Failed to parse .map")),
     };
 
-    //debug!("Map object: {:#?}", m);
+    let i = m.info();
+
+    info!("Loaded map: {:?}", i);
 
     Ok(())
 }

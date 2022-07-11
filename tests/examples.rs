@@ -1,6 +1,7 @@
 use mapfile::*;
 
 const EXAMPLES: &[&str] = &[
+    "maps/partial.map",
     "maps/trezor.map",
 ];
 

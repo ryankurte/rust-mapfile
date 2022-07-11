@@ -40,5 +40,7 @@ fn main() -> anyhow::Result<()> {
 
     info!("Loaded map: {:?}", i);
 
+    debug!("Map: {:#08x?}", m);
+
     Ok(())
 }

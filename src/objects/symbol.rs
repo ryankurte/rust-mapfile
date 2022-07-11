@@ -2,9 +2,9 @@
 use nom::{
     IResult,
     error::context, sequence::{tuple, preceded}, 
-    bytes::complete::{take_while1}, 
-    character::complete::{line_ending, space1, space0, multispace0},
-    combinator::{opt},
+    bytes::complete::{take_while1, tag, take_until1}, 
+    character::complete::{line_ending, space1, space0, multispace0, one_of},
+    combinator::{opt, map}, branch::alt, multi::many1,
 };
 
 use nom_supreme::error::ErrorTree;
@@ -16,66 +16,103 @@ use crate::{parse_hex, parse_path};
 pub struct Symbol<'a> {
     pub name: Option<&'a str>,
     pub addr: u64,
-    pub size: Option<u64>,
-    pub source: Option<&'a str>,
-    pub value: Option<&'a str>,
+    pub kind: SymbolKind<'a>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum SymbolKind<'a> {
+    Value(&'a str),
+    Object{
+        size: u64,
+        source: Option<&'a str>,
+    },
 }
 
 impl <'a> Symbol<'a> {
-    /// Create a new symbol with an address (and other fields empty)
-    pub const fn new(addr: u64) -> Self {
-        Self{
-            addr,
-            name: None,
-            size: None,
-            source: None,
-            value: None,
-        }
-    }
-
     pub fn parse(s: &'a str) -> IResult<&'a str, Self, ErrorTree<&'a str>> {
 
-        let parse_label = tuple((
-            line_ending,
-            space1,
-            parse_hex,
-            space0,
-            parse_path,
-        ));
+        println!("PARSE: '{}'", s);
 
-        let parse_object = tuple((
-            parse_hex,
-            space0,
-            parse_path,
-            opt(parse_label),
-            opt(line_ending),
-        ));
-
-        let (o, (_, addr, _, obj, val, _)) = context(
+        // Start by parsing the first line of the object
+        let (mut o, (indent, addr, _, kind)) = context(
             "symbol",
             tuple((
-                space0,
-                parse_hex,
+                get_indent,
+                parse_hex,              // Address
                 space1,
-                opt(parse_object),
-                opt(preceded(multispace0, take_while1(|c| c != '\r' && c != '\n' ))),
-                opt(line_ending),
+                // From here we either have a value or a size + file
+                alt((
+                    map(tuple((
+                        parse_hex,       // Size
+                        space0,
+                        opt(parse_path), // File path (TODO: may be on next line)
+                        line_ending,
+                    )), |(size, _, source, _)| SymbolKind::Object{ size, source } ),
+
+                    map(tuple((
+                        take_while1(|c| c != '\r' && c != '\n'),
+                    )), |v| SymbolKind::Value(v.0) ),
+                )),
             ))
         )(s)?;
+
+        println!("indent: {} kind: {:#08x?}", indent, kind);
+
+        // Then, check whether the next line is relevant
+        let r = context(
+            "symbol name",
+            tuple((
+                space1,
+                parse_hex,
+                space1,
+                parse_path,
+            ))
+        )(o);
+
+        let mut name = None;
+
+        match r {
+            Ok((o1, (_, addr1, _, val1))) if addr1 == addr => {
+                // Set function name
+                name = Some(val1);
+
+                println!("Found name: {}", val1);
+
+                // Update remainder
+                o = o1;
+            },
+            Ok((o1, (_, addr1, _, val1))) => {
+
+                println!("Found attribute: 0x%{:x} {}", addr1, val1);
+                // TODO
+
+                // Update remainder
+                o = o1;
+            }
+            _ => (),
+        }
 
         Ok((
             o,
             Self{
-                name: obj.map(|v| v.3.map(|w| w.4 )).flatten(),
+                name,
                 addr,
-                size: obj.map(|v| v.0 ),
-                source: obj.map(|v| v.2 ),
-                value: val,
+                kind,
             },
         ))
     }
 }
 
+/// Calculate indentation level
+pub fn get_indent<'a>(s: &'a str) -> IResult<&'a str, &'a str, ErrorTree<&'a str>> {
+    // Fetch indentation characters
+    let (o, spaces) = context(
+        "indentation",
+        take_while1(|c| c == ' ' || c == '\t')
+    )(s)?;
+
+    Ok((o, spaces))
+}
 
 #[cfg(test)]
 mod test {
@@ -86,42 +123,50 @@ mod test {
             Symbol{
                 name: Some("norcow_set"),
                 addr: 0x0000000008042108,
-                size: Some(0x30),
-                source: Some("build/firmware/vendor/trezor-storage/norcow.o"),
-                value: None,
+                kind: SymbolKind::Object{
+                    size: 0x30,
+                    source: Some("build/firmware/vendor/trezor-storage/norcow.o"),
+                },
             },
-            "    0x0000000008042108       0x30 build/firmware/vendor/trezor-storage/norcow.o
-                0x0000000008042108                norcow_set"
+"   0x0000000008042108       0x30 build/firmware/vendor/trezor-storage/norcow.o
+    0x0000000008042108                norcow_set
+"
         ), (
             Symbol{
                 addr: 0x0000000020030000,
-                size: None,
-                source: None,
                 name: None,
-                value: Some("main_stack_base = (ORIGIN (SRAM) + LENGTH (SRAM))")
+                kind: SymbolKind::Value("main_stack_base = (ORIGIN (SRAM) + LENGTH (SRAM))")
             },
-            "    0x0000000020030000                main_stack_base = (ORIGIN (SRAM) + LENGTH (SRAM))"
+"    0x0000000020030000                main_stack_base = (ORIGIN (SRAM) + LENGTH (SRAM))"
         ), (
             Symbol{
                 addr: 0x0000000008040a00,
-                size: None,
-                source: None,
                 name: None,
-                value: Some("_binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end")
+                kind: SymbolKind::Value("_binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end")
             },
-            "    0x0000000008040a00                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end"
+" 0x0000000008040a00                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end
+"
         ), (
             Symbol{
                 addr: 0x00000000080fde08,
-                size: None,
-                source: None,
                 name: None,
-                value: Some("data_lma = LOADADDR (.data)")
+                kind: SymbolKind::Value("data_lma = LOADADDR (.data)")
             },
-            "    0x00000000080fde08                data_lma = LOADADDR (.data)"
+" 0x00000000080fde08                data_lma = LOADADDR (.data)
+"
+        ), (
+            Symbol{
+                addr: 0x0000000008120000,
+                name: None,
+                kind: SymbolKind::Object{
+                    size: 0xf9d8,
+                    source: Some("build/firmware/frozen_mpy.o"),
+                },
+            },
+" 0x0000000008120000     0xf9d8 build/firmware/frozen_mpy.o
+                         0xff3c (size before relaxing))
+"
         ),
-
-        
     ];
 
     #[test]

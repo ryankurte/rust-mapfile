@@ -1,0 +1,67 @@
+Archive member included to satisfy reference by file (symbol)
+build/firmware/rust/thumbv7em-none-eabihf/release/libtrezor_lib.a(trezor_lib-626e85b7e122913f.trezor_lib.fd8b2e1b-cgu.0.rcgu.o)
+                              build/firmware/embed/extmod/rustmods/modtrezorproto.o (protobuf_type_for_name)
+build/firmware/rust/thumbv7em-none-eabihf/release/libtrezor_lib.a(compiler_builtins-50ab11bfb8346963.compiler_builtins.ebf5e920-cgu.0.rcgu.o)
+                              build/firmware/vendor/micropython/extmod/moductypes.o (__aeabi_f2d)
+Discarded input sections
+ .group         0x0000000000000000        0xc build/firmware/embed/extmod/modtrezorconfig/modtrezorconfig.o
+ .group         0x0000000000000000        0xd build/firmware/embed/extmod/modtrezorconfig/modtrezorconfig.o
+ .group         0x0000000000000000        0xe build/firmware/embed/extmod/modtrezorconfig/modtrezorconfig.o
+Memory Configuration
+Name             Origin             Length             Attributes
+FLASH            0x0000000008040000 0x00000000000c0000 xr
+FLASH2           0x0000000008120000 0x00000000000e0000 r
+CCMRAM           0x0000000010000000 0x0000000000010000 awl
+SRAM             0x0000000020000000 0x0000000000030000 awl
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+LOAD build/firmware/embed/extmod/modtrezorconfig/modtrezorconfig.o
+LOAD build/firmware/vendor/trezor-storage/norcow.o
+LOAD build/firmware/vendor/trezor-storage/storage.o
+LOAD build/firmware/embed/extmod/trezorobj.o
+LOAD build/firmware/embed/extmod/modtrezorcrypto/crc.o
+LOAD build/firmware/embed/extmod/modtrezorcrypto/modtrezorcrypto.o
+
+                0x0000000020030000                main_stack_base = (ORIGIN (SRAM) + LENGTH (SRAM))
+                0x0000000020030000                _estack = main_stack_base
+                0x00000000080fde08                data_lma = LOADADDR (.data)
+                0x0000000020000000                data_vma = ADDR (.data)
+                0x0000000000000200                data_size = SIZEOF (.data)
+                0x0000000010000000                ccmram_start = ORIGIN (CCMRAM)
+                0x0000000010010000                ccmram_end = (ORIGIN (CCMRAM) + LENGTH (CCMRAM))
+                0x0000000020000000                sram_start = ORIGIN (SRAM)
+                0x0000000020030000                sram_end = (ORIGIN (SRAM) + LENGTH (SRAM))
+                0x0000000020000000                _ram_start = sram_start
+                0x0000000020030000                _ram_end = sram_end
+                0x0000000000121c00                _codelen = (((LENGTH (FLASH) - SIZEOF (.vendorheader)) - SIZEOF (.header)) + SIZEOF (.flash2))
+                0x0000000008040000                _flash_start = ORIGIN (FLASH)
+                0x0000000008100000                _flash_end = (ORIGIN (FLASH) + LENGTH (FLASH))
+                0x0000000020003acc                _heap_start = ADDR (.heap)
+                0x000000002002c000                _heap_end = (ADDR (.heap) + SIZEOF (.heap))
+
+.vendorheader   0x0000000008040000      0xa00
+ *(.vendorheader)
+ .vendorheader  0x0000000008040000      0xa00 build/firmware/embed/firmware/vendorheader.o
+                0x0000000008040000                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_start
+                0x0000000008040a00                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end
+
+.header         0x0000000008040a00      0x400
+ *(.header)
+ .header        0x0000000008040a00      0x400 build/firmware/embed/firmware/header.o
+
+.flash2         0x0000000008120000    0x62a00
+ build/firmware/frozen_mpy.o(.rodata*)
+ .rodata.str1.1
+                0x0000000008120000     0xf9d8 build/firmware/frozen_mpy.o
+                                       0xff3c (size before relaxing)
+ .rodata        0x000000000812f9d8     0x91e1 build/firmware/frozen_mpy.o
+ *fill*         0x0000000008138bb9        0x1 
+
+.flash          0x0000000008040e00    0xbd000
+ *(.vector_table)
+ .vector_table  0x0000000008040e00      0x1ac build/firmware/embed/trezorhal/vectortable.o
+                0x0000000008040fac                . = ALIGN (0x4)
+ *(.text*)
+ .text.mod_trezorconfig_wipe
+                0x0000000008040fac       0x30 build/firmware/embed/extmod/modtrezorconfig/modtrezorconfig.o

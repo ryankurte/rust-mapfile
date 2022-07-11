@@ -21,14 +21,14 @@ use objects::*;
 /// Linker .map file object for parsing
 #[derive(Clone, PartialEq, Debug)]
 pub struct MapFile<'a> {
-    pub references: Vec<Reference<'a>>,
-    pub discarded: Vec<LinkerSection<'a>>,
-    pub memory: Vec<Memory<'a>>,
-    pub files: Vec<File<'a>>,
-    pub sections: Vec<Section<'a>>,
+    pub references: Vec<ArchiveInfo<'a>>,
+    pub discarded: Vec<SectionInfo<'a>>,
+    pub memory: Vec<MemoryInfo<'a>>,
+    pub files: Vec<FileInfo<'a>>,
+    pub sections: Vec<Object<'a>>,
 }
 
-/// Map file informatino
+/// Map file information
 #[derive(Clone, PartialEq, Debug)]
 pub struct MapInfo {
     pub num_members: usize,
@@ -60,14 +60,14 @@ impl <'a> MapFile<'a> {
             tuple((
                 space0,
                 opt(line_ending),
-                Reference::parse_block,
-                LinkerSection::parse_block,
-                Memory::parse_block,
+                ArchiveInfo::parse_block,
+                SectionInfo::parse_block,
+                MemoryInfo::parse_block,
                 
                 terminated(tag("Linker script and memory map"), many0(line_ending)),
-                many0(terminated(File::parse, line_ending)),
+                many0(terminated(FileInfo::parse, line_ending)),
 
-                many0(delimited(space0, Section::parse, line_ending)),
+                many0(delimited(space0, Object::parse, line_ending)),
 
                 // Read the (unhandled) remains of the file
                 rest,

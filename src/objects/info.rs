@@ -224,6 +224,8 @@ impl <'a> SectionInfo<'a> {
 mod test {
     use super::*;
 
+    use pretty_assertions::assert_eq;
+
     const FILES: &[(FileInfo, &str)] = &[
         (
             FileInfo{

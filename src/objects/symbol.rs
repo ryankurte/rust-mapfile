@@ -3,8 +3,8 @@ use nom::{
     IResult,
     error::context, sequence::{tuple, preceded}, 
     bytes::complete::{take_while1, tag, take_until1}, 
-    character::complete::{line_ending, space1, space0, multispace0, one_of},
-    combinator::{opt, map}, branch::alt, multi::many1,
+    character::complete::{line_ending, space1, space0, multispace0, one_of, newline},
+    combinator::{opt, map}, branch::alt, multi::{many1, many0},
 };
 
 use nom_supreme::error::ErrorTree;
@@ -101,22 +101,51 @@ impl <'a> Symbol<'a> {
             },
         ))
     }
+
+
+    pub fn parse_many(s: &'a str) -> IResult<&'a str, Vec<Symbol>, ErrorTree<&'a str>> {
+
+        let (rem, output) = context("symbols", 
+            many0(tuple((
+                many0(newline),
+                Symbol::parse,
+                many0(newline),
+            )))
+        )(s)?;
+
+        let symbols = output.iter().map(|v| v.1.clone() ).collect();
+
+        Ok((rem, symbols))
+    }
+
 }
 
 /// Calculate indentation level
-pub fn get_indent<'a>(s: &'a str) -> IResult<&'a str, &'a str, ErrorTree<&'a str>> {
+pub fn get_indent<'a>(s: &'a str) -> IResult<&'a str, usize, ErrorTree<&'a str>> {
     // Fetch indentation characters
     let (o, spaces) = context(
         "indentation",
         take_while1(|c| c == ' ' || c == '\t')
     )(s)?;
 
-    Ok((o, spaces))
+    let mut n = 0;
+    for s in spaces.chars() {
+        n += match s {
+            ' ' => 1,
+            '\t' => 4,
+            _ => 0,
+        }
+    }
+
+    Ok((o, n))
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use nom::multi::many0;
+    use pretty_assertions::assert_eq;
 
     const SYMBOLS: &[(Symbol, &str)] = &[
         (
@@ -176,4 +205,32 @@ mod test {
             assert_eq!(&p, v);
         }
     }
+
+    #[test]
+    fn parse_chained_symbols() {
+
+        let raw = 
+" 0x0000000008040000                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_start
+  0x0000000008040a00                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end
+";
+
+        let v = vec![
+            Symbol{
+                name: None,
+                addr: 0x0000000008040000,
+                kind: SymbolKind::Value("_binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_start"),
+            },
+            Symbol{
+                name: None,
+                addr: 0x0000000008040a00,
+                kind: SymbolKind::Value("_binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end"),
+            },
+        ];
+
+        let p = Symbol::parse_many(raw).unwrap();
+
+        assert_eq!(p.1, v);
+
+    }
+
 }

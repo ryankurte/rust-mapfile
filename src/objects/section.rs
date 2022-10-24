@@ -83,7 +83,7 @@ impl <'a> Object<'a> {
                 // Section header (name, location, size), all but first section
                 opt(Self::parse_object_header),
                 // Section contents (text)
-                many0(Symbol::parse),
+                Symbol::parse_many,
             ))
         )(s)?;
 
@@ -128,6 +128,8 @@ impl <'a> Object<'a> {
 mod tests {
     use super::*;
 
+    use pretty_assertions::assert_eq;
+
     #[test]
     fn parse_objects() {
 
@@ -150,10 +152,11 @@ mod tests {
                     },
                 ],
             },
-" *(.vendorheader)
+"
+  *(.vendorheader)
   .vendorheader  0x0000000008040000      0xa00 build/firmware/embed/firmware/vendorheader.o
-                0x0000000008040000                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_start
-                0x0000000008040a00                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end
+                 0x0000000008040000                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_start
+                 0x0000000008040a00                _binary_embed_vendorheader_vendorheader_unsafe_signed_prod_bin_end
             "
         ), (
             Object{
@@ -174,7 +177,8 @@ mod tests {
                     }
                 ],
             },
-            "0x0000000020030000                main_stack_base = (ORIGIN (SRAM) + LENGTH (SRAM))
+            "
+            0x0000000020030000                main_stack_base = (ORIGIN (SRAM) + LENGTH (SRAM))
             0x0000000020030000                _estack = main_stack_base
             "
         ), (

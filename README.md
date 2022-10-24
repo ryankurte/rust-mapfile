@@ -1,1 +1,2 @@
-GNU linker map file parser [WIP]
+**WIP** parser for GNU linker map files
+
